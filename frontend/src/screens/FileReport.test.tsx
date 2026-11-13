@@ -9,16 +9,16 @@ const json = (status: number, body: unknown) =>
   Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
 
 async function fill() {
-  await userEvent.type(screen.getByLabelText(/^name/i), "Priya");
-  await userEvent.type(screen.getByLabelText(/station/i), "PROP");
-  await userEvent.type(screen.getByLabelText(/wind/i), "12");
-  await userEvent.type(screen.getByLabelText(/temp/i), "9");
-  await userEvent.type(screen.getByLabelText(/fuel/i), "99");
-  await userEvent.type(screen.getByLabelText(/note/i), "Valve slow");
+  await userEvent.type(screen.getByRole("textbox", { name: /^name/i }), "Priya");
+  await userEvent.type(screen.getByRole("combobox", { name: /station/i }), "PROP");
+  await userEvent.type(screen.getByRole("spinbutton", { name: /wind/i }), "12");
+  await userEvent.type(screen.getByRole("spinbutton", { name: /temp/i }), "9");
+  await userEvent.type(screen.getByRole("spinbutton", { name: /fuel/i }), "99");
+  await userEvent.type(screen.getByRole("textbox", { name: /note/i }), "Valve slow");
 }
 
 it("sends every field and reports the new id", async () => {
-  const fetch = vi.fn((url: string) =>
+  const fetch = vi.fn((url: string, _init?: RequestInit) =>
     url.includes("/limits") ? json(200, { verdict: "go", violations: [] }) : json(202, { id: 7 }));
   vi.stubGlobal("fetch", fetch);
   const onFiled = vi.fn();
@@ -40,7 +40,7 @@ it("shows the server's message next to the field it is about", async () => {
   render(<FileReport onFiled={vi.fn()} />);
   await fill();
   await userEvent.click(screen.getByRole("button", { name: /file report/i }));
-  const field = screen.getByLabelText(/fuel/i);
+  const field = screen.getByRole("spinbutton", { name: /fuel/i });
   expect(field).toHaveAttribute("aria-invalid", "true");
   expect(await screen.findByText(/less than or equal to 150/)).toBeInTheDocument();
 });
