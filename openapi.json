@@ -1,0 +1,798 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mission Control",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/limits/check": {
+      "post": {
+        "summary": "Limits Check",
+        "operationId": "limits_check_api_limits_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Readings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports": {
+      "get": {
+        "summary": "List Reports",
+        "operationId": "list_reports_api_reports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReportOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Reports Api Reports Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "File Report",
+        "operationId": "file_report_api_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Filed"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}": {
+      "get": {
+        "summary": "Get Report",
+        "operationId": "get_report_api_reports__report_id__get",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such report"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Checks": {
+        "properties": {
+          "injection": {
+            "$ref": "#/components/schemas/Injection"
+          },
+          "missing": {
+            "$ref": "#/components/schemas/Missing"
+          },
+          "panic": {
+            "$ref": "#/components/schemas/Panic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "injection",
+          "missing",
+          "panic"
+        ],
+        "title": "Checks"
+      },
+      "Filed": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "Filed"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Injection": {
+        "properties": {
+          "flagged": {
+            "type": "boolean",
+            "title": "Flagged"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "default": ""
+          },
+          "phrases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Phrases",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "flagged"
+        ],
+        "title": "Injection"
+      },
+      "LimitResult": {
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "go",
+              "no_go"
+            ],
+            "title": "Verdict"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/Violation"
+            },
+            "type": "array",
+            "title": "Violations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "violations"
+        ],
+        "title": "LimitResult"
+      },
+      "Missing": {
+        "properties": {
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "default": []
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "Missing"
+      },
+      "Panic": {
+        "properties": {
+          "panic": {
+            "type": "boolean",
+            "title": "Panic"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "panic"
+        ],
+        "title": "Panic"
+      },
+      "Readings": {
+        "properties": {
+          "wind_knots": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Wind Knots"
+          },
+          "temp_c": {
+            "type": "number",
+            "maximum": 80.0,
+            "minimum": -80.0,
+            "title": "Temp C"
+          },
+          "fuel_pct": {
+            "type": "number",
+            "maximum": 150.0,
+            "minimum": 0.0,
+            "title": "Fuel Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "wind_knots",
+          "temp_c",
+          "fuel_pct"
+        ],
+        "title": "Readings"
+      },
+      "ReportIn": {
+        "properties": {
+          "wind_knots": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Wind Knots"
+          },
+          "temp_c": {
+            "type": "number",
+            "maximum": 80.0,
+            "minimum": -80.0,
+            "title": "Temp C"
+          },
+          "fuel_pct": {
+            "type": "number",
+            "maximum": 150.0,
+            "minimum": 0.0,
+            "title": "Fuel Pct"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Name"
+          },
+          "station": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Station"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "wind_knots",
+          "temp_c",
+          "fuel_pct",
+          "name",
+          "station",
+          "note"
+        ],
+        "title": "ReportIn"
+      },
+      "ReportOut": {
+        "properties": {
+          "wind_knots": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Wind Knots"
+          },
+          "temp_c": {
+            "type": "number",
+            "maximum": 80.0,
+            "minimum": -80.0,
+            "title": "Temp C"
+          },
+          "fuel_pct": {
+            "type": "number",
+            "maximum": 150.0,
+            "minimum": 0.0,
+            "title": "Fuel Pct"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Name"
+          },
+          "station": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Station"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Note"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "received",
+              "processing",
+              "pending_approval",
+              "needs_review",
+              "approved",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "go",
+                  "no_go"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/Violation"
+            },
+            "type": "array",
+            "title": "Violations",
+            "default": []
+          },
+          "subsystem": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "propulsion",
+                  "avionics",
+                  "communications",
+                  "weather",
+                  "ground_systems",
+                  "range_safety",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subsystem"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
+          },
+          "effective_severity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Severity"
+          },
+          "classify_fallback": {
+            "type": "boolean",
+            "title": "Classify Fallback",
+            "default": false
+          },
+          "brief_by_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brief By Minutes"
+          },
+          "brief_by_deadline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brief By Deadline"
+          },
+          "checks": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Checks"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rounds": {
+            "items": {
+              "$ref": "#/components/schemas/Round"
+            },
+            "type": "array",
+            "title": "Rounds",
+            "default": []
+          },
+          "briefing": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Briefing"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          },
+          "total_cost_usd": {
+            "type": "string",
+            "title": "Total Cost Usd",
+            "default": "0"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/Step"
+            },
+            "type": "array",
+            "title": "Steps",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "wind_knots",
+          "temp_c",
+          "fuel_pct",
+          "name",
+          "station",
+          "note",
+          "id",
+          "created_at",
+          "status"
+        ],
+        "title": "ReportOut"
+      },
+      "Round": {
+        "properties": {
+          "round": {
+            "type": "integer",
+            "title": "Round"
+          },
+          "draft": {
+            "type": "string",
+            "title": "Draft"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          },
+          "feedback": {
+            "type": "string",
+            "title": "Feedback"
+          }
+        },
+        "type": "object",
+        "required": [
+          "round",
+          "draft",
+          "approved",
+          "feedback"
+        ],
+        "title": "Round"
+      },
+      "Step": {
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "title": "Seq"
+          },
+          "step": {
+            "type": "string",
+            "title": "Step"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "code",
+              "model"
+            ],
+            "title": "Kind"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "cost_usd": {
+            "type": "string",
+            "title": "Cost Usd"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "fallback",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "output": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Output"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "step",
+          "kind",
+          "model",
+          "started_at",
+          "duration_ms",
+          "input_tokens",
+          "output_tokens",
+          "cost_usd",
+          "status",
+          "output"
+        ],
+        "title": "Step"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Violation": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "value",
+          "message"
+        ],
+        "title": "Violation"
+      }
+    }
+  }
+}
