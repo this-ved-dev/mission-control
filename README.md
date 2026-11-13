@@ -16,7 +16,7 @@ The model runs locally in [Ollama](https://ollama.com). Start it before the app:
 
 ```bash
 OLLAMA_NUM_PARALLEL=3 ollama serve
-ollama pull qwen3:14b
+ollama pull gemma4:12b
 ```
 
 No model running? `LLM_PROVIDER=fake docker compose up --build` runs everything with an offline stand-in.
@@ -44,7 +44,8 @@ Every model call goes through one interface (`backend/app/llm/base.py`). The rea
 
 ```
 LLM_BASE_URL=http://host.docker.internal:11434/v1
-LLM_MODEL=qwen3:14b
+LLM_MODEL=gemma4:12b
+LLM_REASONING_EFFORT=none   # skip hidden reasoning on local thinking models
 LLM_MODEL_FAST=      # optional: smaller model for classify and the three checks
 LLM_MODEL_WRITER=    # optional: stronger model for draft and review
 ```

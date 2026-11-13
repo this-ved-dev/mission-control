@@ -13,9 +13,10 @@ class Settings:
     provider: str = "openai_compat"
     base_url: str = "http://localhost:11434/v1"
     api_key: str = "ollama"
-    model: str = "qwen3:14b"
+    model: str = "gemma4:12b"
     model_fast: str = ""
     model_writer: str = ""
+    reasoning_effort: str = ""
     price_input_per_m: Decimal = Decimal(0)
     price_output_per_m: Decimal = Decimal(0)
 
@@ -38,7 +39,9 @@ class Settings:
             return FakeClient()
         from app.llm.openai_compat import OpenAICompatClient
 
-        return OpenAICompatClient(self.base_url, self.api_key)
+        return OpenAICompatClient(
+            self.base_url, self.api_key, reasoning_effort=self.reasoning_effort
+        )
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -50,6 +53,7 @@ class Settings:
             model=env("LLM_MODEL", cls.model),
             model_fast=env("LLM_MODEL_FAST", ""),
             model_writer=env("LLM_MODEL_WRITER", ""),
+            reasoning_effort=env("LLM_REASONING_EFFORT", ""),
             price_input_per_m=Decimal(env("LLM_PRICE_INPUT_PER_M", "0")),
             price_output_per_m=Decimal(env("LLM_PRICE_OUTPUT_PER_M", "0")),
         )
