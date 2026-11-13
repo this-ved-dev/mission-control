@@ -13,8 +13,14 @@ async def test_loop_stops_at_three_rounds():
     rounds = await draft_and_review(llm, t, "m", "m", FACTS)
     assert MAX_ROUNDS == 3
     assert len(rounds) == 3
-    assert [s["step"] for s in t.steps] == ["draft_1", "review_1", "draft_2", "review_2",
-                                            "draft_3", "review_3"]
+    assert [s["step"] for s in t.steps] == [
+        "draft_1",
+        "review_1",
+        "draft_2",
+        "review_2",
+        "draft_3",
+        "review_3",
+    ]
     assert not rounds[-1].approved
 
 

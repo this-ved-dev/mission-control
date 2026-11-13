@@ -16,8 +16,11 @@ def mock_host(content: str, seen: list):
             "created": 0,
             "model": "local-model",
             "choices": [
-                {"index": 0, "finish_reason": "stop",
-                 "message": {"role": "assistant", "content": content}}
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {"role": "assistant", "content": content},
+                }
             ],
             "usage": {"prompt_tokens": 120, "completion_tokens": 7, "total_tokens": 127},
         }
@@ -61,8 +64,9 @@ async def test_plain_text_call_sends_no_response_format():
 async def test_reasoning_block_is_stripped():
     seen = []
     client = OpenAICompatClient(
-        base_url="http://h/v1", api_key="k",
-        http_client=mock_host("<think>hmm</think>\n{\"ok\": false}", seen),
+        base_url="http://h/v1",
+        api_key="k",
+        http_client=mock_host('<think>hmm</think>\n{"ok": false}', seen),
     )
     result = await client.complete(step="x", system="s", prompt="p", schema=SCHEMA, model="m")
     assert result.text == '{"ok": false}'
