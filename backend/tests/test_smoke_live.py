@@ -60,7 +60,7 @@ async def test_real_model_end_to_end(tmp_path, report, verdict, flagged):
     result = db.get(rid)
     print(
         f"\n{settings.model}: {result['status']} {result['subsystem']}/{result['severity']} "
-        f"rounds={len(result['rounds'])}\n  {result['briefing']}"
+        f"rounds={len(result.get('rounds', []))}\n  {result.get('briefing')} {result['warnings']}"
     )
     assert result["status"] in ("pending_approval", "needs_review"), result["warnings"]
     assert result["verdict"] == verdict

@@ -70,3 +70,54 @@ async def test_reasoning_block_is_stripped():
     )
     result = await client.complete(step="x", system="s", prompt="p", schema=SCHEMA, model="m")
     assert result.text == '{"ok": false}'
+
+
+async def test_reasoning_effort_is_sent_when_configured():
+    seen = []
+    client = OpenAICompatClient(
+        base_url="http://h/v1",
+        api_key="k",
+        http_client=mock_host("{}", seen),
+        reasoning_effort="none",
+    )
+    await client.complete(step="x", system="s", prompt="p", schema=SCHEMA, model="m")
+    assert json.loads(seen[0].content)["reasoning_effort"] == "none"
+
+
+async def test_host_without_structured_output_gets_the_schema_in_the_prompt():
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        if "response_format" in seen[-1]:
+            return httpx.Response(
+                500, json={"error": {"message": "structured output is unavailable"}}
+            )
+        body = {
+            "id": "x",
+            "object": "chat.completion",
+            "created": 0,
+            "model": "m",
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": 'Sure:\n```json\n{"ok": true}\n```',
+                    },
+                }
+            ],
+            "usage": {"prompt_tokens": 50, "completion_tokens": 9, "total_tokens": 59},
+        }
+        return httpx.Response(200, json=body)
+
+    client = OpenAICompatClient(
+        base_url="http://h/v1",
+        api_key="k",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    result = await client.complete(step="x", system="s", prompt="p", schema=SCHEMA, model="m")
+    assert "response_format" not in seen[-1]
+    assert '"required": ["ok"]' in seen[-1]["messages"][0]["content"]
+    assert result.text == '{"ok": true}'
