@@ -17,7 +17,7 @@ openapi:
 	cd frontend && npm run gen:api
 
 figures:
-	cd frontend && for f in src/figures/*/build.mjs; do node $$f --audit || exit 1; done
+	cd frontend && npm run figures
 
 smoke:
 	cd backend && uv run pytest -m live -p no:socket -o addopts=""

@@ -151,3 +151,15 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .field { display: grid; gap: 4px; font-size: 12px; color: var(--anatomy-muted); }
 .file-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Fig 1 bench */
+.bench .iso-figure { margin: 0; }
+.bench-led { fill: var(--anatomy-lo); }
+.bench-led[data-on] { fill: var(--caution); filter: drop-shadow(0 0 2px var(--caution)); }
+.bench-lamp-wrap[data-verdict="go"] .bench-lamp .iso-top { fill: var(--go); }
+.bench-lamp-wrap[data-verdict="no_go"] .bench-lamp .iso-top { fill: var(--nogo); }
+.bench-tally[data-on] .iso-top { fill: var(--anatomy-lit-top); }
+.bench-tally[data-on] .iso-edge { stroke: var(--anatomy-lit); }
+.iso-legend .iso-swatch[data-mark="green"] path { stroke: var(--go); }
+.gauges.compact .iso-plate-corner[data-corner="readout"] { max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gauges .iso-figure, .gauges .iso-plate { min-width: 0; overflow: hidden; }
