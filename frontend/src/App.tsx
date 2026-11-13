@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Bench } from "./figures/bench/Bench";
 import { Console } from "./screens/Console";
 import { FileReport } from "./screens/FileReport";
 
@@ -53,7 +54,7 @@ export default function App() {
       <main>
         {filing
           ? <FileReport onFiled={(id) => (location.hash = `#/report/${id}`)} />
-          : <Console selected={selected} onPick={(id) => (location.hash = `#/report/${id}`)} />}
+          : <Console selected={selected} onPick={(id) => (location.hash = `#/report/${id}`)} bench={(r) => <Bench report={r} />} />}
       </main>
     </div>
   );
