@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
@@ -26,7 +27,7 @@ def validation_errors(_: Request, exc: RequestValidationError) -> JSONResponse:
 
 
 def create_app(
-    db_path: Path | str = "data/mission.db",
+    db_path: Path | str | None = None,
     llm: LLMClient | None = None,
     settings: Settings | None = None,
     run_pipeline: bool = True,
@@ -35,7 +36,7 @@ def create_app(
     llm = llm or settings.client()
     app = FastAPI(title="Mission Control", version="0.1.0")
     app.add_exception_handler(RequestValidationError, validation_errors)
-    db = DB(db_path)
+    db = DB(db_path or os.environ.get("MISSION_DB", "data/mission.db"))
     db.mark_interrupted()
 
     def get_or_404(report_id: int) -> dict:

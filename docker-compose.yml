@@ -1,0 +1,21 @@
+# One command: docker compose up --build   ->  http://localhost:8088
+services:
+  api:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai_compat}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:14b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/app/data
+  web:
+    build: ./frontend
+    ports:
+      - "${WEB_PORT:-8088}:80"
+    depends_on:
+      - api

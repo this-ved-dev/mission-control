@@ -11,13 +11,15 @@
     "test": "vitest run",
     "gen:api": "openapi-typescript ../openapi.json -o src/api/schema.d.ts",
     "preview": "vite preview",
-    "figures": "node src/figures/bench/build.mjs && node tools/anatomy/lines.mjs src/figures/bench/preview.html"
+    "figures": "node src/figures/bench/build.mjs && node tools/anatomy/lines.mjs src/figures/bench/preview.html",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.10",
