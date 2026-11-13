@@ -164,10 +164,130 @@
           }
         }
       }
+    },
+    "/api/reports/{report_id}/retry": {
+      "post": {
+        "summary": "Retry",
+        "operationId": "retry_api_reports__report_id__retry_post",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Filed"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such report"
+          },
+          "409": {
+            "description": "Report is not in a state that allows this"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}/approve": {
+      "post": {
+        "summary": "Approve",
+        "description": "The only way a briefing becomes approved: a person, by name.",
+        "operationId": "approve_api_reports__report_id__approve_post",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Approval"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such report"
+          },
+          "409": {
+            "description": "Report is not in a state that allows this"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Approval": {
+        "properties": {
+          "approver": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Approver"
+          },
+          "acknowledged_flag": {
+            "type": "boolean",
+            "title": "Acknowledged Flag",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "approver"
+        ],
+        "title": "Approval"
+      },
       "Checks": {
         "properties": {
           "injection": {

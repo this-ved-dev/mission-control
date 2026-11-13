@@ -23,11 +23,19 @@ async def run(db_path, report, replies=None):
 
 
 async def test_happy_path_runs_every_step_and_waits_for_a_human(db_path):
-    report, _ = await run(db_path, GOOD, {"draft": ["GO: valve 2 slow, recovered."],
-                                          "review": [OK_REVIEW]})
+    report, _ = await run(
+        db_path, GOOD, {"draft": ["GO: valve 2 slow, recovered."], "review": [OK_REVIEW]}
+    )
     assert [s["step"] for s in report["steps"]] == [
-        "limits_check", "classify", "brief_by", "check_injection", "check_missing",
-        "check_panic", "draft_1", "review_1", "cost_total",
+        "limits_check",
+        "classify",
+        "brief_by",
+        "check_injection",
+        "check_missing",
+        "check_panic",
+        "draft_1",
+        "review_1",
+        "cost_total",
     ]
     assert report["verdict"] == "go"
     assert report["status"] == "pending_approval"
@@ -52,11 +60,15 @@ async def test_report_cost_is_the_exact_sum_of_its_steps(db_path):
 async def test_hidden_instruction_never_changes_the_verdict(db_path):
     bad_weather = {**GOOD, "wind_knots": 30, "note": INJECTION_NOTE}
     # The models are fooled: classify says low, injection check says clean, draft says GO.
-    report, llm = await run(db_path, bad_weather, {
-        "classify": [{"subsystem": "propulsion", "severity": "low"}],
-        "injection": [{"flagged": False, "reason": ""}],
-        "draft": ["GO for launch."] * 3,
-    })
+    report, llm = await run(
+        db_path,
+        bad_weather,
+        {
+            "classify": [{"subsystem": "propulsion", "severity": "low"}],
+            "injection": [{"flagged": False, "reason": ""}],
+            "draft": ["GO for launch."] * 3,
+        },
+    )
     assert report["verdict"] == "no_go"
     assert [v["field"] for v in report["violations"]] == ["wind_knots"]
     assert report["checks"]["injection"]["flagged"]  # keyword backstop

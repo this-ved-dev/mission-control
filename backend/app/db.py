@@ -87,14 +87,21 @@ class DB:
         rows = self._fetch("SELECT result FROM reports WHERE id = ?", (report_id,))
         return json.loads(rows[0]["result"]) if rows else {}
 
+    def clear_steps(self, report_id: int) -> None:
+        self._run("DELETE FROM steps WHERE report_id = ?", (report_id,))
+
+    def mark_interrupted(self) -> None:
+        """After a restart, a half-run pipeline is an error the Flight Director can retry."""
+        self._run("UPDATE reports SET status = 'error' WHERE status = 'processing'")
+
     def add_step(self, report_id: int, step: dict[str, Any]) -> None:
         self._run(
             "INSERT INTO steps (report_id, data) VALUES (?, ?)", (report_id, json.dumps(step))
         )
 
     def steps(self, report_id: int) -> list[dict[str, Any]]:
-        rows = self._fetch("SELECT data FROM steps WHERE report_id = ? ORDER BY id", (report_id,))
-        return [json.loads(r["data"]) for r in rows]
+        rows = self._fetch("SELECT data FROM steps WHERE report_id = ?", (report_id,))
+        return sorted((json.loads(r["data"]) for r in rows), key=lambda s: s["seq"])
 
     def get(self, report_id: int) -> dict[str, Any] | None:
         rows = self._fetch("SELECT * FROM reports WHERE id = ?", (report_id,))
