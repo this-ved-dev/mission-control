@@ -1,0 +1,37 @@
+[project]
+name = "mission-control"
+version = "0.1.0"
+description = "Go/No-Go launch console: anomaly reports, plain-code launch limits, model-drafted briefings, human approval."
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.162.7",
+    "openai>=3.50.0",
+    "pydantic>=2.14.3",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+addopts = "-p no:cacheprovider --disable-socket --allow-unix-socket -m 'not live'"
+markers = ["live: talks to a real model host; run with make smoke"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "pytest-cov>=7.1.0",
+    "pytest-socket>=0.8.1",
+    "ruff>=0.17.5",
+]
