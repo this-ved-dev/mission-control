@@ -61,14 +61,20 @@ async def test_foundry_sends_schema_effort_and_note_to_the_messages_api():
         "format": {"type": "json_schema", "schema": SCHEMA},
     }
     assert result.data == {"severity": "high"}
-    assert (result.model, result.input_tokens, result.output_tokens) == ("claude-sonnet-5-5", 120, 7)
+    assert result.model == "claude-sonnet-5-5"
+    assert (result.input_tokens, result.output_tokens) == (120, 7)
 
 
 async def test_foundry_without_schema_returns_text():
-    client = foundry(lambda r: httpx2.Response(200, json=message("NO-GO: wind.")))
-    result = await client.complete(step="draft", system="s", user="u", effort="medium")
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return httpx2.Response(200, json=message("NO-GO: wind."))
+
+    result = await foundry(handler).complete(step="draft", system="s", user="u", effort="medium")
     assert result.data == "NO-GO: wind."
-    assert "format" not in json.loads(client.last_request_body)["output_config"]
+    assert bodies[0]["output_config"] == {"effort": "medium"}
 
 
 async def test_foundry_returns_unparseable_json_as_text_for_the_caller_to_reject():

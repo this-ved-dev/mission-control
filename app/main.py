@@ -6,11 +6,12 @@ from fastapi.responses import JSONResponse
 
 from app import api
 from app.config import Settings
+from app.llm import LLMClient, make_llm
 from app.schemas import field_errors
 from app.store import Store
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, llm: LLMClient | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     app = FastAPI(
         title="Mission Control",
@@ -19,6 +20,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.store = Store(settings.db_path)
+    app.state.llm = llm or make_llm(settings)
     app.include_router(api.router)
 
     @app.exception_handler(RequestValidationError)
