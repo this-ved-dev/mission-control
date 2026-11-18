@@ -89,3 +89,16 @@ async def test_failed_review_counts_as_not_approved():
     result, steps = await brief_loop(fake, REPORT, ANALYSIS)
     assert result["briefing_rounds"] == 2
     assert steps[1]["status"] == "error"
+
+
+async def test_failed_later_draft_keeps_the_previous_one():
+    fake = FakeClient({"draft": [GOOD_DRAFT, RuntimeError("down")], "review": [NO]})
+    result, _ = await brief_loop(fake, REPORT, ANALYSIS)
+    assert result["briefing"] == GOOD_DRAFT
+    assert result["warnings"] == ["Draft 2 failed; showing the previous draft."]
+
+
+async def test_empty_draft_text_is_a_fallback_step():
+    fake = FakeClient({"draft": ["   "]})
+    _, steps = await brief_loop(fake, REPORT, ANALYSIS)
+    assert steps[0]["status"] == "fallback"
