@@ -33,6 +33,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+allowed-confusables = ["–"]  # en dash in display ranges like 98–100
 
 [dependency-groups]
 dev = [

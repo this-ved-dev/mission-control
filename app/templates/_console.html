@@ -1,0 +1,212 @@
+<main id="console" data-live="{{ 'true' if live else 'false' }}">
+{% if not r %}
+  <section class="empty">
+    <p class="kicker">REAL TIME. RIGHT CALL.</p>
+    <h1 class="display">No reports yet.</h1>
+    <p class="lede">When an engineer files an anomaly report it appears here with its verdict, a drafted briefing and a full trace.</p>
+    <a class="btn btn-ink" href="/file">FILE THE FIRST REPORT</a>
+  </section>
+{% else %}
+{% set verdict = "NO-GO" if r.verdict == "no_go" else "GO" %}
+{% set flags = r.checks or {} %}
+<div class="grid">
+
+  {# ---- report pass: facts computed in code ---- #}
+  <article class="pass {{ 'is-nogo' if r.verdict == 'no_go' }}" data-report-id="{{ r.id }}" aria-label="Report {{ r.id }} facts">
+    <header class="pass-head">
+      <span>REPORT #{{ r.id }}</span>
+      <span>{{ r.station }}</span>
+    </header>
+    <div class="pass-route">
+      <span class="verdict {{ 'red' if r.verdict == 'no_go' else '' }}">{{ verdict }}</span>
+      <span class="verdict-mark" aria-hidden="true">{{ "✕" if r.verdict == "no_go" else "✓" }}</span>
+    </div>
+    <p class="pass-meta"><span>FILED {{ r.created_at | clock }} UTC</span><span>{{ stations[r.station] | upper }}</span></p>
+    {% if r.violations %}
+      <ul class="violations">
+        {% for v in r.violations %}<li>{{ v.message }}</li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="violations ok">All readings within launch limits.</p>
+    {% endif %}
+    <dl class="cells">
+      {% for c in cells %}
+      <div class="cell" data-reading="{{ c.key }}" data-ok="{{ 'true' if c.ok else 'false' }}">
+        <dt>{{ c.label }}</dt>
+        <dd><span class="big">{{ c.value }}</span><span class="unit">{{ c.unit }}</span> <span class="mark" aria-label="{{ 'within limit' if c.ok else 'outside limit' }}">{{ "✓" if c.ok else "✕" }}</span></dd>
+        <dd class="sub">{{ c.limit }}</dd>
+        <dd class="sub">{{ c.margin }}</dd>
+      </div>
+      {% endfor %}
+      <div class="cell">
+        <dt>BRIEF BY</dt>
+        <dd><span class="big" {% if r.brief_by_at and r.status != 'approved' %}data-deadline="{{ r.brief_by_at }}"{% endif %}>{{ r.brief_by_minutes ~ "m" if r.brief_by_minutes else "—" }}</span></dd>
+        <dd class="sub">{{ (r.severity | upper) if r.severity else "PENDING" }}</dd>
+        <dd class="sub">{{ r.brief_by_minutes ~ " MIN" if r.brief_by_minutes else "" }}</dd>
+      </div>
+    </dl>
+    <svg class="barcode" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
+      {% for x, w in bars %}<rect x="{{ x }}" y="0" width="{{ w }}" height="40"/>{% endfor %}
+    </svg>
+    <p class="pass-foot"><span>{{ r.name | upper }}</span><span class="caption">COMPUTED IN CODE</span></p>
+    <details class="note">
+      <summary class="btn btn-line">VIEW ORIGINAL NOTE</summary>
+      <pre>{{ r.note }}</pre>
+    </details>
+  </article>
+
+  {# ---- briefing and the human decision ---- #}
+  <section class="brief" aria-label="Briefing">
+    <p class="kicker">
+      BRIEFING
+      {% if r.briefing_rounds %} · ROUND {{ r.briefing_rounds }} OF 3 ·
+        {% if r.reviewer_approved %}REVIEWER APPROVED{% else %}<span class="amber-text">REVIEWER NOT SATISFIED AFTER {{ r.briefing_rounds }} ROUND{{ "S" if r.briefing_rounds > 1 }}</span>{% endif %}
+      {% endif %}
+    </p>
+    {% if r.briefing %}
+      <h1 class="headline">{{ r.briefing }}</h1>
+      {% if not r.reviewer_approved and r.review_feedback %}<p class="feedback">Last review: {{ r.review_feedback }}</p>{% endif %}
+    {% elif r.status == "error" %}
+      <h1 class="headline muted">Pipeline failed. The verdict stands; see the trace.</h1>
+    {% else %}
+      <h1 class="headline muted">Drafting briefing<span class="dots" aria-hidden="true">…</span></h1>
+    {% endif %}
+
+    {% if flags.injection and flags.injection.flagged %}
+      <div class="banner" data-flag="injection" role="alert">
+        <span class="banner-icon" aria-hidden="true">!</span>
+        <div><p><b>Note contained instructions to the system.</b> Verdict was computed from readings only.</p><p class="sub">{{ flags.injection.reason }}</p></div>
+      </div>
+    {% endif %}
+    {% if flags.missing and flags.missing.missing %}
+      <div class="banner" data-flag="missing">
+        <span class="banner-icon" aria-hidden="true">?</span>
+        <div><p><b>Missing details:</b> {{ flags.missing.missing | join(", ") }}.</p></div>
+      </div>
+    {% endif %}
+    {% if flags.panic and flags.panic.panic %}
+      <div class="banner" data-flag="panic">
+        <span class="banner-icon" aria-hidden="true">~</span>
+        <div><p><b>Tone flagged as panicked.</b> Read the facts, not the tone.</p><p class="sub">{{ flags.panic.reason }}</p></div>
+      </div>
+    {% endif %}
+    {% for w in r.warnings %}
+      <div class="banner" data-flag="warning"><span class="banner-icon" aria-hidden="true">!</span><div><p>{{ w }}</p></div></div>
+    {% endfor %}
+
+    <div class="decision">
+      {% if r.status == "approved" %}
+        <p class="approved"><span class="pill">APPROVED · {{ r.approved_by }} · {{ r.approved_at | clock }} UTC</span></p>
+      {% elif r.status in ("pending_approval", "needs_review") %}
+        <form method="post" action="/reports/{{ r.id }}/approve">
+          <label class="field">
+            <span>APPROVER</span>
+            <input name="approver" autocomplete="name" required maxlength="80" {% if decision_error %}aria-invalid="true" aria-describedby="decision-error"{% endif %}>
+          </label>
+          {% if r.status == "needs_review" %}
+            <label class="ack"><input type="checkbox" name="acknowledge_flags"> I have read the flagged note</label>
+          {% endif %}
+          <div class="actions">
+            <button class="btn btn-amber" type="submit">APPROVE BRIEFING</button>
+            {% if board | length > 1 %}<a class="btn btn-line" href="/reports/{{ (board | rejectattr('id', 'equalto', r.id) | first).id }}">NEXT REPORT</a>{% endif %}
+          </div>
+        </form>
+      {% elif r.status == "error" %}
+        <p class="sub">This report cannot be approved until it is re-filed.</p>
+      {% else %}
+        <p class="sub">Briefing in progress · step {{ r.steps | length }} of {{ expected_steps }}. Only a person can approve it once it is ready.</p>
+      {% endif %}
+      {% if decision_error %}<p class="error" id="decision-error" role="alert">{{ decision_error }}</p>{% endif %}
+    </div>
+  </section>
+
+  {# ---- live report board: the queue ---- #}
+  <section class="board" aria-label="Live report board">
+    <header class="board-head">
+      <h2>LIVE REPORT BOARD</h2>
+      <span class="clock"><span data-clock>{{ now_clock }}</span> UTC <span aria-hidden="true">⟳</span></span>
+    </header>
+    <table aria-live="polite">
+      <thead><tr><th>REPORT</th><th>STN</th><th>SUBSYS</th><th>VERDICT</th><th>BRIEF</th><th>STATUS</th></tr></thead>
+      <tbody>
+      {% for b in board %}
+        <tr data-report-id="{{ b.id }}" class="{{ 'selected' if b.id == r.id }} {{ 'dim' if b.status == 'approved' }}">
+          <td><a href="/reports/{{ b.id }}">#{{ b.id }}</a></td>
+          <td>{{ b.station }}</td>
+          <td>{{ subsystems[b.subsystem] if b.subsystem else "···" }}</td>
+          <td>{% if b.verdict == "no_go" %}<span class="red-text">NO-GO</span>{% else %}<span class="pill">GO</span>{% endif %}</td>
+          <td>{% if b.brief_by_at and b.status in ("pending_approval", "needs_review") %}<span data-deadline="{{ b.brief_by_at }}">{{ b.brief_by_minutes }}m</span>{% else %}—{% endif %}</td>
+          <td>
+            {% if b.status == "needs_review" %}<span class="pill pill-amber">REVIEW</span>
+            {% elif b.status == "pending_approval" %}PENDING
+            {% elif b.status == "approved" %}✓ APPROVED
+            {% elif b.status == "error" %}<span class="red-text">ERROR</span>
+            {% else %}··· {{ b.steps | length }}/{{ expected_steps }}{% endif %}
+            {% set f = b.checks or {} %}
+            {% if f.injection and f.injection.flagged %}<span class="flag" aria-label="injection flagged" title="Injection flagged">!</span>{% endif %}
+            {% if f.missing and f.missing.missing %}<span class="flag" aria-label="details missing" title="Details missing">?</span>{% endif %}
+            {% if f.panic and f.panic.panic %}<span class="flag" aria-label="panicked tone" title="Panicked tone">~</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <a class="board-foot" href="/file">FILE A REPORT <span aria-hidden="true">↗</span></a>
+  </section>
+
+  {# ---- bottom band: checks · trace · cost ---- #}
+  <section class="band checks" aria-label="Checks">
+    <h2>CHECKS</h2>
+    {% set rows3 = [
+      ("INJECTION", flags.injection, flags.injection and flags.injection.flagged, flags.injection.reason if flags.injection else ""),
+      ("MISSING", flags.missing, flags.missing and flags.missing.missing, (flags.missing.missing | join(", ")) if flags.missing and flags.missing.missing else "Nothing important missing."),
+      ("PANIC", flags.panic, flags.panic and flags.panic.panic, flags.panic.reason if flags.panic else ""),
+    ] %}
+    <ul>
+    {% for label, value, raised, reason in rows3 %}
+      <li class="{{ 'raised' if raised }}">
+        <span class="check-name">{{ label }}</span>
+        <span class="check-state">{% if not value %}···{% elif raised %}FLAGGED{% else %}CLEAR{% endif %}</span>
+        <span class="sub">{{ reason }}</span>
+      </li>
+    {% endfor %}
+    </ul>
+  </section>
+
+  <section class="band trace" aria-label="Trace">
+    <h2>TRACE · {{ r.steps | length }} STEPS</h2>
+    <ol>
+    {% for row in rows %}
+      <li class="trace-row {{ 'parallel' if row | length > 1 }}">
+        {% for s in row %}
+        <details class="step status-{{ s.status }}" data-step="{{ s.name }}">
+          <summary>
+            <span class="tag">{{ s.kind | upper }}</span>
+            <span class="step-name">{{ s.name | replace("_", " ") }}</span>
+            <span class="nums">{{ "{:,}".format(s.input_tokens) }} → {{ "{:,}".format(s.output_tokens) }} TOK · {{ s.duration_ms }} MS · {{ s.cost_usd | usd }}</span>
+            {% if s.status != "ok" %}<span class="step-status">{{ s.status | upper }}</span>{% endif %}
+          </summary>
+          <pre>{{ s.output | tojson(indent=2) }}</pre>
+        </details>
+        {% endfor %}
+      </li>
+    {% endfor %}
+    </ol>
+  </section>
+
+  <section class="band cost" aria-label="Cost">
+    <h2>COST</h2>
+    <p class="total">{{ r.cost_usd | usd }}</p>
+    <p class="sub">{{ "{:,}".format(r.input_tokens + r.output_tokens) }} TOKENS · {{ "{:,}".format(r.input_tokens) }} IN · {{ "{:,}".format(r.output_tokens) }} OUT</p>
+    {% set slot = 300 / (r.steps | length) %}
+    <svg class="spark" viewBox="0 0 300 48" preserveAspectRatio="none" role="img" aria-label="Tokens per step">
+      {% for s in r.steps %}
+        {% set h = ((s.input_tokens + s.output_tokens) / max_tokens * 44) | round(1) %}
+        <rect x="{{ (loop.index0 * slot + slot * 0.35) | round(1) }}" y="{{ 46 - h }}" width="{{ (slot * 0.3) | round(1) }}" height="{{ h + 1 }}"><title>{{ s.name }}: {{ s.input_tokens + s.output_tokens }} tokens</title></rect>
+      {% endfor %}
+    </svg>
+    <p class="sub">TOKENS PER STEP · PRICED AT SONNET 5.5 $2 IN / $10 OUT PER 1M</p>
+  </section>
+</div>
+{% endif %}
+</main>

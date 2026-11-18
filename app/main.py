@@ -2,12 +2,14 @@
 
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from app import api
+from app import api, web
 from app.config import Settings
 from app.llm import LLMClient, make_llm
 from app.pipeline import run_pipeline
@@ -37,6 +39,8 @@ def create_app(settings: Settings | None = None, llm: LLMClient | None = None) -
     app.state.store = Store(settings.db_path)
     app.state.llm = llm or make_llm(settings)
     app.include_router(api.router)
+    app.include_router(web.router)
+    app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(_: Request, exc: RequestValidationError) -> JSONResponse:
