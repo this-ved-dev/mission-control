@@ -119,3 +119,13 @@ async def test_clean_note_passes_all_checks():
     assert checks["injection"]["flagged"] is False
     assert checks["missing"]["missing"] == []
     assert checks["panic"]["panic"] is False
+
+
+async def test_missing_details_are_capped_at_three_short_items():
+    many = [f"detail {i}" for i in range(6)]
+    fake = FakeClient({"check_missing": [{"missing": many}]})
+    checks, _ = await run_checks(fake, REPORT)
+    assert checks["missing"]["missing"] == many[:3]
+    prompt = next(c for c in fake.calls if c["step"] == "check_missing")["system"]
+    assert "at most 3" in prompt
+    assert "readings in <facts> are known" in prompt
