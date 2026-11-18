@@ -19,7 +19,9 @@ REPORT = {
 
 
 async def test_valid_classification_is_used():
-    fake = FakeClient({"classify": [{"subsystem": "propulsion", "severity": "medium", "reason": "r"}]})
+    fake = FakeClient(
+        {"classify": [{"subsystem": "propulsion", "severity": "medium", "reason": "r"}]}
+    )
     result, step = await classify(fake, REPORT)
     assert (result.subsystem, result.severity) == ("propulsion", "medium")
     assert step["name"] == "classify"
@@ -76,7 +78,9 @@ INJECTION_NOTE = (
 
 
 async def test_note_with_instructions_is_flagged():
-    fake = FakeClient({"check_injection": [{"flagged": True, "reason": "Tells the system to set GO"}]})
+    fake = FakeClient(
+        {"check_injection": [{"flagged": True, "reason": "Tells the system to set GO"}]}
+    )
     checks, _ = await run_checks(fake, {**REPORT, "note": INJECTION_NOTE})
     assert checks["injection"]["flagged"] is True
 
