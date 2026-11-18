@@ -1,5 +1,8 @@
 """App factory. Run with: uvicorn app.main:create_app --factory"""
 
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -7,13 +10,25 @@ from fastapi.responses import JSONResponse
 from app import api
 from app.config import Settings
 from app.llm import LLMClient, make_llm
+from app.pipeline import run_pipeline
 from app.schemas import field_errors
 from app.store import Store
 
 
 def create_app(settings: Settings | None = None, llm: LLMClient | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Re-run reports a restart cut off mid-pipeline so none stay stuck in "processing".
+        store, llm = app.state.store, app.state.llm
+        app.state.resumed = [
+            asyncio.create_task(run_pipeline(store, llm, i)) for i in store.interrupted()
+        ]
+        yield
+
     app = FastAPI(
+        lifespan=lifespan,
         title="Mission Control",
         version="2.0.0",
         description="Go/No-Go launch console: anomaly reports in, human-approved briefings out.",
@@ -26,7 +41,7 @@ def create_app(settings: Settings | None = None, llm: LLMClient | None = None) -
     @app.exception_handler(RequestValidationError)
     async def invalid_request(_: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
-            {"message": "Invalid report", "errors": field_errors(exc.errors())}, status_code=422
+            {"message": "Invalid input", "errors": field_errors(exc.errors())}, status_code=422
         )
 
     @app.get("/healthz", tags=["ops"])

@@ -34,3 +34,55 @@ def file_report(store: Store, report: ReportIn) -> int:
         output={"verdict": limits.verdict, "violations": violations},
     )
     return report_id
+
+
+class NotFound(Exception):
+    pass
+
+
+class Conflict(Exception):
+    pass
+
+
+class NeedsAcknowledgement(Exception):
+    pass
+
+
+def approve(store: Store, report_id: int, approver: str, acknowledge_flags: bool) -> dict:
+    """The only way a briefing becomes approved: a named person, through this function."""
+    report = store.get_report(report_id)
+    if report is None:
+        raise NotFound(f"report {report_id} not found")
+    if report["status"] == "needs_review" and not acknowledge_flags:
+        raise NeedsAcknowledgement(
+            "This note was flagged. Read it and acknowledge the flags before approving."
+        )
+    if not store.approve(report_id, approver):
+        raise Conflict(f"report {report_id} is {report['status']}, not pending approval")
+    store.add_step(
+        report_id,
+        name="approval",
+        kind="human",
+        model=None,
+        started_at=now(),
+        duration_ms=0,
+        input_tokens=0,
+        output_tokens=0,
+        status="ok",
+        output={"approver": approver},
+    )
+    return store.get_report(report_id)
+
+
+def list_by_urgency(store: Store) -> list[dict]:
+    """Reports needing a person first (soonest brief-by deadline on top), then in progress,
+    then approved (most recent first)."""
+
+    def key(r: dict) -> tuple:
+        if r["status"] == "approved":
+            return (2, "", -r["id"])
+        if r["status"] in ("received", "processing"):
+            return (1, "", r["id"])
+        return (0, r["brief_by_at"] or "", r["id"])
+
+    return sorted(store.list_reports(), key=key)

@@ -3,11 +3,13 @@ every decision. Each function returns its trace step(s) alongside its result."""
 
 import asyncio
 import json
+import logging
 import time
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from app.brief_by import brief_by_minutes, effective_severity
 from app.cost import step_cost
 from app.injection import injection_phrase
 from app.llm import LLMClient, LLMError
@@ -19,7 +21,9 @@ from app.schemas import (
     Review,
     output_schema,
 )
-from app.store import now
+from app.store import Store, now
+
+log = logging.getLogger(__name__)
 
 SYSTEM = (
     "You assist the Flight Director of a rocket launch in the final countdown. "
@@ -220,3 +224,71 @@ async def brief_loop(llm: LLMClient, report: dict, analysis: dict) -> tuple[dict
         "warnings": warnings,
     }
     return result, steps
+
+
+def code_step(name: str, output: dict, started_at: str, t0: float, status: str = "ok") -> dict:
+    return {
+        "name": name,
+        "kind": "code",
+        "model": None,
+        "started_at": started_at,
+        "duration_ms": round((time.perf_counter() - t0) * 1000),
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "status": status,
+        "output": output,
+    }
+
+
+async def run_pipeline(store: Store, llm: LLMClient, report_id: int) -> None:
+    """Everything after filing. Ends at pending_approval or needs_review: never at approved."""
+    report = store.get_report(report_id)
+    store.update_report(report_id, status="processing")
+    try:
+        classification, step = await classify(llm, report)
+        store.add_step(report_id, **step)
+
+        started_at, t0 = now(), time.perf_counter()
+        has_violations = bool(report["violations"])
+        severity = effective_severity(classification.severity, has_violations)
+        minutes = brief_by_minutes(classification.severity, has_violations)
+        store.add_step(
+            report_id,
+            **code_step(
+                "brief_by",
+                {"model_severity": classification.severity, "severity": severity,
+                 "violations": has_violations, "minutes": minutes},
+                started_at, t0,
+            ),
+        )  # fmt: skip
+        store.update_report(
+            report_id,
+            subsystem=classification.subsystem,
+            model_severity=classification.severity,
+            severity=severity,
+            brief_by_minutes=minutes,
+        )
+
+        checks, steps = await run_checks(llm, report)
+        for step in steps:
+            store.add_step(report_id, **step)
+        store.update_report(report_id, checks=checks)
+
+        analysis = {
+            "subsystem": classification.subsystem,
+            "severity": severity,
+            "brief_by_minutes": minutes,
+            "checks": checks,
+        }
+        briefing, steps = await brief_loop(llm, report, analysis)
+        for step in steps:
+            store.add_step(report_id, **step)
+        status = "needs_review" if checks["injection"]["flagged"] else "pending_approval"
+        store.update_report(report_id, **briefing, status=status)
+    except Exception as e:  # never leave a report stuck in "processing"
+        log.exception("pipeline failed for report %s", report_id)
+        store.add_step(
+            report_id,
+            **code_step("pipeline", {"error": str(e)}, now(), time.perf_counter(), "error"),
+        )
+        store.update_report(report_id, status="error")
