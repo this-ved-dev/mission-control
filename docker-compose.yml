@@ -1,0 +1,26 @@
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    image: mission-control:local
+    env_file:
+      - path: .env  # Foundry credentials; see .env.example
+        required: false
+    environment:
+      MC_LLM: ${MC_LLM:-foundry}
+    ports:
+      - "${MC_PORT:-8000}:8000"
+    volumes:
+      - mc-data:/app/data  # the SQLite file survives restarts and rebuilds
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      target: test
+    profiles: ["test"]
+    network_mode: none  # proves the suite needs no network and no API key
+
+volumes:
+  mc-data:
