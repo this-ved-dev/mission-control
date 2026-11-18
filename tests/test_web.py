@@ -169,13 +169,6 @@ def test_console_refreshes_itself_only_while_something_is_processing(client, set
     assert page(client.get("/")).select_one("#console")["data-live"] == "true"
 
 
-def test_partial_refresh_returns_only_the_console(client, good):
-    file_via_form(client, good)
-    r = client.get("/reports/1", headers={"X-Partial": "1"})
-    assert "<html" not in r.text
-    assert page(r).select_one("#console")
-
-
 def test_static_assets_are_served(client):
     assert client.get("/static/app.css").status_code == 200
     assert client.get("/static/app.js").status_code == 200

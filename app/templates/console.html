@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{% if r %}#{{ r.id }} {{ "NO-GO" if r.verdict == "no_go" else "GO" }} · {% endif %}Mission Control{% endblock %}
+{% block nav_status %}
+  <p class="counts" aria-label="Status summary">
+    <span><b class="{{ 'red' if counts.no_go }}">{{ counts.no_go }}</b> NO-GO OPEN</span>
+    <span><b>{{ counts.awaiting }}</b> AWAITING</span>
+    <span>NEXT BRIEF {% if counts.next_deadline %}<b data-deadline="{{ counts.next_deadline }}">—</b>{% else %}<b>—</b>{% endif %}</span>
+  </p>
+{% endblock %}
+{% block content %}{% include "_console.html" %}{% endblock %}

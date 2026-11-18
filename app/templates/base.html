@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Mission Control{% endblock %}</title>
+  <link rel="preload" href="/static/fonts/martian-mono-latin-standard.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/" aria-label="Mission Control home">
+      <span class="glyph" aria-hidden="true">{% for _ in range(16) %}<i></i>{% endfor %}</span>
+      <span class="wordmark">MISSION CONTROL</span>
+      <span class="subtitle">GO/NO-GO LAUNCH CONSOLE</span>
+    </a>
+    <div class="nav-right">
+      {% block nav_status %}{% endblock %}
+      <a class="btn btn-ink" href="/file">FILE REPORT</a>
+    </div>
+  </header>
+  {% block content %}{% endblock %}
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

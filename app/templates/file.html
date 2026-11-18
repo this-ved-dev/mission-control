@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}File a report · Mission Control{% endblock %}
+{% block content %}
+<main class="file-page">
+  <section class="file-intro">
+    <p class="kicker">ANOMALY REPORT</p>
+    <h1 class="display">Tell the Flight Director what you saw.</h1>
+    <p class="lede">The verdict comes from your three readings, checked in code against the launch limits. Your note is read by the model for the briefing; it never changes the verdict.</p>
+  </section>
+  <form class="pass file-pass" method="post" action="/file" novalidate>
+    <header class="pass-head"><span>NEW REPORT</span><span>SEQ ···</span></header>
+    {% macro err(field) %}{% if errors[field] %}<span class="error" id="err-{{ field }}" data-error-for="{{ field }}">{{ errors[field] }}</span>{% endif %}{% endmacro %}
+    {% macro invalid(field) %}{% if errors[field] %}aria-invalid="true" aria-describedby="err-{{ field }}"{% endif %}{% endmacro %}
+    <div class="form-grid">
+      <label class="cell wide {{ 'has-error' if errors.name }}">
+        <span>NAME</span>
+        <input name="name" value="{{ values.name }}" autocomplete="name" maxlength="80" required {{ invalid("name") }}>
+        {{ err("name") }}
+      </label>
+      <label class="cell wide {{ 'has-error' if errors.station }}">
+        <span>STATION</span>
+        <select name="station" required {{ invalid("station") }}>
+          <option value="">Choose a station</option>
+          {% for code, label in stations.items() %}<option value="{{ code }}" {{ "selected" if values.station == code }}>{{ code }} · {{ label }}</option>{% endfor %}
+        </select>
+        {{ err("station") }}
+      </label>
+      {% for field, label in [("wind_knots", "WIND KT"), ("temp_c", "TEMP °C"), ("fuel_pct", "FUEL %")] %}
+      <label class="cell {{ 'has-error' if errors[field] }}">
+        <span>{{ label }} <small>{{ limits[field] }}</small></span>
+        <input name="{{ field }}" type="number" step="any" inputmode="decimal" value="{{ values[field] }}" required {{ invalid(field) }}>
+        {{ err(field) }}
+      </label>
+      {% endfor %}
+      <label class="cell full {{ 'has-error' if errors.note }}">
+        <span>NOTE <small><span data-count-for="note">{{ (values.note or "") | length }}</span> / {{ note_max }}</small></span>
+        <textarea name="note" rows="6" maxlength="{{ note_max }}" required {{ invalid("note") }}>{{ values.note }}</textarea>
+        {{ err("note") }}
+      </label>
+    </div>
+    <button class="btn btn-ink btn-block" type="submit">FILE REPORT</button>
+    <a class="btn btn-line btn-block" href="/">BACK TO CONSOLE</a>
+  </form>
+</main>
+{% endblock %}
