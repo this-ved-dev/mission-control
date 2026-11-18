@@ -26,5 +26,20 @@ def client(settings):
 
 
 @pytest.fixture
+def make_client(settings):
+    """Build a client around a specific (usually scripted) model client."""
+    clients = []
+
+    def make(llm=None):
+        c = TestClient(create_app(settings, llm=llm))
+        clients.append(c.__enter__())
+        return c
+
+    yield make
+    for c in clients:
+        c.__exit__(None, None, None)
+
+
+@pytest.fixture
 def good():
     return dict(GOOD)
