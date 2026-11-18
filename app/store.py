@@ -3,10 +3,12 @@
 import json
 import sqlite3
 from contextlib import closing
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+
+from app.cost import report_cost
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS reports (
@@ -93,12 +95,48 @@ class Store:
             steps = db.execute(
                 "SELECT * FROM steps WHERE report_id = ? ORDER BY seq", (report_id,)
             ).fetchall()
-        return {**_decode(dict(row)), "steps": [_decode_step(dict(s)) for s in steps]}
+        report = _decode(dict(row))
+        report["steps"] = [_decode_step(dict(s)) for s in steps]
+        report["cost_usd"] = str(report_cost(report["steps"]))
+        report["input_tokens"] = sum(s["input_tokens"] for s in report["steps"])
+        report["output_tokens"] = sum(s["output_tokens"] for s in report["steps"])
+        report["brief_by_at"] = None
+        if report["brief_by_minutes"] is not None:
+            created = datetime.fromisoformat(report["created_at"])
+            deadline = created + timedelta(minutes=report["brief_by_minutes"])
+            report["brief_by_at"] = deadline.isoformat()
+        return report
 
     def list_reports(self) -> list[dict]:
         with closing(self._connect()) as db:
             ids = [r[0] for r in db.execute("SELECT id FROM reports ORDER BY id")]
         return [self.get_report(i) for i in ids]
+
+    def approve(self, report_id: int, approver: str) -> bool:
+        """Atomically move a report awaiting a person to approved. False if it wasn't waiting."""
+        with closing(self._connect()) as db, db:
+            cur = db.execute(
+                "UPDATE reports SET status = 'approved', approved_by = ?, approved_at = ? "
+                "WHERE id = ? AND status IN ('pending_approval', 'needs_review')",
+                (approver, now(), report_id),
+            )
+            return cur.rowcount == 1
+
+    def interrupted(self) -> list[int]:
+        """Reports a restart cut off mid-pipeline. Their model steps are cleared for a re-run."""
+        with closing(self._connect()) as db, db:
+            ids = [
+                r[0]
+                for r in db.execute(
+                    "SELECT id FROM reports WHERE status IN ('received', 'processing')"
+                )
+            ]
+            for report_id in ids:
+                db.execute(
+                    "DELETE FROM steps WHERE report_id = ? AND name != 'limits_check'",
+                    (report_id,),
+                )
+        return ids
 
     def add_step(self, report_id: int, **step: Any) -> None:
         step["cost_usd"] = str(step.get("cost_usd", Decimal(0)))

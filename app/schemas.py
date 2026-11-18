@@ -77,7 +77,7 @@ class ViolationOut(BaseModel):
 class StepOut(BaseModel):
     seq: int
     name: str
-    kind: Literal["code", "model"]
+    kind: Literal["code", "model", "human"]
     model: str | None
     started_at: str
     duration_ms: int
@@ -99,8 +99,33 @@ class ReportOut(BaseModel):
     note: str
     verdict: Literal["go", "no_go"]
     violations: list[ViolationOut]
-    status: str
+    status: Literal[
+        "received", "processing", "pending_approval", "needs_review", "approved", "error"
+    ]
+    subsystem: Subsystem | None = None
+    severity: Severity | None = None
+    model_severity: Severity | None = None
+    brief_by_minutes: int | None = None
+    brief_by_at: str | None = None
+    checks: dict | None = None
+    briefing: str | None = None
+    briefing_rounds: int | None = None
+    reviewer_approved: bool | None = None
+    review_feedback: str | None = None
+    warnings: list[str]
+    approved_by: str | None = None
+    approved_at: str | None = None
+    cost_usd: str
+    input_tokens: int
+    output_tokens: int
     steps: list[StepOut]
+
+
+class ApproveIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    approver: str = Field(min_length=1, max_length=80)
+    acknowledge_flags: bool = False
 
 
 class ValidationErrorOut(BaseModel):

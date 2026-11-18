@@ -12,6 +12,7 @@
           "reports"
         ],
         "summary": "List Reports",
+        "description": "All reports, the ones needing the Flight Director first.",
         "operationId": "list_reports_api_reports_get",
         "responses": {
           "200": {
@@ -35,6 +36,7 @@
           "reports"
         ],
         "summary": "Create Report",
+        "description": "File a report. The verdict is set from the readings now; the model pipeline runs after.",
         "operationId": "create_report_api_reports_post",
         "requestBody": {
           "content": {
@@ -58,7 +60,7 @@
             }
           },
           "422": {
-            "description": "Invalid report",
+            "description": "Invalid input",
             "content": {
               "application/json": {
                 "schema": {
@@ -100,7 +102,7 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "No such report"
           },
           "422": {
             "description": "Validation Error",
@@ -108,6 +110,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}/approve": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Approve Report",
+        "description": "Human sign-off. Flagged reports need acknowledge_flags=true.",
+        "operationId": "approve_report_api_reports__report_id__approve_post",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such report"
+          },
+          "409": {
+            "description": "Not awaiting approval"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorOut"
                 }
               }
             }
@@ -143,6 +204,26 @@
   },
   "components": {
     "schemas": {
+      "ApproveIn": {
+        "properties": {
+          "approver": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Approver"
+          },
+          "acknowledge_flags": {
+            "type": "boolean",
+            "title": "Acknowledge Flags",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "approver"
+        ],
+        "title": "ApproveIn"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -271,7 +352,186 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "received",
+              "processing",
+              "pending_approval",
+              "needs_review",
+              "approved",
+              "error"
+            ],
             "title": "Status"
+          },
+          "subsystem": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "propulsion",
+                  "avionics",
+                  "communications",
+                  "weather",
+                  "ground_systems",
+                  "range_safety",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subsystem"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
+          },
+          "model_severity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Severity"
+          },
+          "brief_by_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brief By Minutes"
+          },
+          "brief_by_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brief By At"
+          },
+          "checks": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checks"
+          },
+          "briefing": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Briefing"
+          },
+          "briefing_rounds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Briefing Rounds"
+          },
+          "reviewer_approved": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Approved"
+          },
+          "review_feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Feedback"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "cost_usd": {
+            "type": "string",
+            "title": "Cost Usd"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
           },
           "steps": {
             "items": {
@@ -294,6 +554,10 @@
           "verdict",
           "violations",
           "status",
+          "warnings",
+          "cost_usd",
+          "input_tokens",
+          "output_tokens",
           "steps"
         ],
         "title": "ReportOut"
@@ -312,7 +576,8 @@
             "type": "string",
             "enum": [
               "code",
-              "model"
+              "model",
+              "human"
             ],
             "title": "Kind"
           },
