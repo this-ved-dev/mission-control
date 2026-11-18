@@ -13,6 +13,7 @@ from typing import Any, Protocol
 from anthropic import APIError, AsyncAnthropicFoundry
 
 from app.config import Settings
+from app.injection import INJECTION
 
 
 @dataclass(frozen=True)
@@ -155,11 +156,6 @@ def make_llm(settings: Settings) -> LLMClient:
 # Used only by FakeClient when unscripted (MC_LLM=fake). They read the <note> and <facts> blocks
 # the pipeline puts in every prompt.
 
-INJECTION = re.compile(
-    r"ignore (all |any )?(previous|prior|above) instructions|you are now|set (the )?verdict|"
-    r"\bsystem\s*:|disregard",
-    re.IGNORECASE,
-)
 SUBSYSTEM_WORDS = {
     "propulsion": r"valve|fuel|lox|engine|tank|propellant|pressur|thrust",
     "communications": r"telemetry|link|radio|comm|antenna|signal",

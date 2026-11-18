@@ -23,6 +23,51 @@ class ReportIn(BaseModel):
     note: str = Field(min_length=1, max_length=NOTE_MAX)
 
 
+Subsystem = Literal[
+    "propulsion", "avionics", "communications", "weather", "ground_systems", "range_safety", "other"
+]
+Severity = Literal["low", "medium", "high"]
+
+
+# --- model replies (validated in code; anything else falls back) ---------------------------
+
+
+class Classification(BaseModel):
+    subsystem: Subsystem
+    severity: Severity
+    reason: str = ""
+
+
+class InjectionCheck(BaseModel):
+    flagged: bool
+    reason: str = ""
+
+
+class MissingCheck(BaseModel):
+    missing: list[str]
+
+
+class PanicCheck(BaseModel):
+    panic: bool
+    reason: str = ""
+
+
+class Review(BaseModel):
+    approved: bool
+    feedback: str
+
+
+def output_schema(model: type[BaseModel]) -> dict:
+    """JSON schema for structured outputs: every field required, no extra keys."""
+    schema = model.model_json_schema()
+    schema["required"] = list(schema["properties"])
+    schema["additionalProperties"] = False
+    return schema
+
+
+# --- API ------------------------------------------------------------------------------------
+
+
 class ViolationOut(BaseModel):
     reading: str
     value: float
