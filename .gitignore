@@ -1,15 +1,18 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 .coverage
-node_modules/
-dist/
+coverage.xml
+junit.xml
+
+# Local state and secrets
 data/
 .env
-test-results/
-playwright-report/
-frontend/src/figures/*/preview*.html
-shots/
+
+# OS / editors
 .DS_Store
+.idea/
+.vscode/
