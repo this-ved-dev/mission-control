@@ -1,0 +1,46 @@
+[project]
+name = "mission-control"
+version = "0.1.0"
+description = "Go/No-Go launch console: anomaly reports in, human-approved briefings out."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=2.10.0",
+    "fastapi>=0.164.0",
+    "jinja2>=3.1.6",
+    "python-multipart>=0.0.34",
+    "uvicorn>=0.54.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+addopts = "-q --disable-socket --allow-unix-socket -m 'not live' --cov=app --cov-report=term-missing --cov-fail-under=90"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["live: calls the real Foundry deployment (needs ANTHROPIC_FOUNDRY_* env vars and network)"]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[dependency-groups]
+dev = [
+    "beautifulsoup4>=4.15.0",
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "pytest-cov>=7.1.0",
+    "pytest-socket>=0.8.1",
+    "ruff>=0.17.5",
+]
